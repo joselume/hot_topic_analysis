@@ -21,8 +21,7 @@ public class HotTopicAnalysisController {
 	}
 	
 	@PostMapping("/analyse/new")
-	long analyseRSS (@RequestBody List<String> urls) {
-		
+	public long analyseRSS (@RequestBody List<String> urls) {
 		return this.service.processRequest(urls);
 	}
 	

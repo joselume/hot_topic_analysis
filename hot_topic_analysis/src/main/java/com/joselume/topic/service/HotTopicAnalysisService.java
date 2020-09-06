@@ -25,6 +25,7 @@ import com.joselume.topic.entity.News;
 import com.joselume.topic.entity.Occurrence;
 import com.joselume.topic.entity.RSSFeed;
 import com.joselume.topic.entity.Request;
+import com.joselume.topic.exception.NoOccurrencesToGenerate;
 import com.joselume.topic.repository.OccurrenceRepository;
 import com.joselume.topic.repository.RequestRepository;
 
@@ -40,11 +41,12 @@ public class HotTopicAnalysisService {
 	private final OccurrenceRepository occurrenceRepository;
 		
 	@Autowired
-	private RestTemplate restTemplate;
+	private final RestTemplate restTemplate;
 
-	public HotTopicAnalysisService(RequestRepository repository, OccurrenceRepository occurrenceRepository) {
-		this.requestRepository = repository;
+	public HotTopicAnalysisService(RequestRepository requestRepository, OccurrenceRepository occurrenceRepository, RestTemplate restTemplate) {
+		this.requestRepository = requestRepository;
 		this.occurrenceRepository = occurrenceRepository;
+		this.restTemplate = restTemplate;
 	}	
 	
 	/**
@@ -55,7 +57,7 @@ public class HotTopicAnalysisService {
 	public long processRequest (List<String> urls) {
 		
 		// Get the information of every RSS Feed
-		Request request = new Request();
+ 		Request request = new Request();
 		List<RSSFeed> rssFeeds =  this.fillRSSFeeds(urls, request);
 		request.setFeeds(rssFeeds);
 		
@@ -63,9 +65,15 @@ public class HotTopicAnalysisService {
 		Map <String, Occurrence> occurrences = this.findWordOccurrences(request, rssFeeds); 
 		request.setOccurrence(new ArrayList<Occurrence>(occurrences.values()));
 		
-		requestRepository.save(request);
+		Request savedRequest = new Request();
 		
-		return request.getId();
+		if (request.getOccurrences().size() > 0) {
+			savedRequest = requestRepository.save(request); 
+		} else {
+			throw new NoOccurrencesToGenerate ("There are not hot topics for the given URLs");
+		}
+				
+		return savedRequest.getId();
 	}
 	
 	/**
